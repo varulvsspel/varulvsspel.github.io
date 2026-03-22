@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Varulv Rösträknare (Arkiv)</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="pageTitle"><h1>🐺 Varulv Rösträknare (Arkiv)</h1></div>
+  <label for="threadSelect">Välj tråd:</label>
+  <select id="threadSelect"></select>
+  <button id="exportBtn">Exportera CSV</button>
+  <div class="small" id="sourceLine"></div>
+  <br>
+  <label><input type="radio" name="voteView" value="latest" checked> Endast senaste röst</label>
+  <label><input type="radio" name="voteView" value="all"> Alla röster</label>
+  <br><label>Filter per spelare <select id="playerFilter"></select></label>
+  <br>
+  <button id="animateBtn" type="button">Animera röster</button>
+  <label>Hastighet:
+    <input type="number" id="liveDelayInput" value="200" min="0" style="width:60px"> ms
+  </label>
+  <br>
+  <div class="sliderRow">
+    <label for="timeSlider">Visa röster fram till:</label>
+    <input type="range" id="timeSlider" min="0" max="0" value="0" list="sliderTicks">
+    <datalist id="sliderTicks"></datalist>
+    <span id="sliderTimeLabel">–</span>
+  </div>
+  <div class="summary" id="summary"></div>
+  <canvas id="chart" width="520" height="225"></canvas>
+  <div class="votesHeader">
+    <h2 style="margin:0">Röster</h2>
+  </div>
+  <table id="voteTable">
+    <thead>
+      <tr>
+        <th data-sort="from">Röstgivare</th>
+        <th>Röst</th>
+        <th data-sort="ts">Tidpunkt</th>
+        <th>Riskerar att åka ut</th>
+        <th>Därefter</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <script src="script.js"></script>
+</body>
+</html>

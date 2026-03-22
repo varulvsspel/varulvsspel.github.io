@@ -1,0 +1,13 @@
+body{font-family:Arial,sans-serif;margin:2em;background:#f9f9f9;color:#333}
+label,button,select,input{margin:8px 10px 8px 0}
+select,button,input{padding:6px}
+#timeSlider{padding:0;}
+table{border-collapse:collapse;width:100%;margin-top:12px;background:#fff;border:1px solid #ccc}
+th,td{padding:8px 10px;border:1px solid #ccc;text-align:center;vertical-align:top}
+th{background:#3c8dbc;color:#fff;cursor:pointer}
+.summary{font-weight:bold;font-size:18px;margin:12px 0}
+.sliderRow{display:flex;align-items:center;gap:10px;margin:8px 0}
+.votesHeader{display:flex;align-items:baseline;gap:10px;margin-top:18px}
+#voteTable td:last-child,#voteTable th:last-child{padding-right:18px}
+#chart{max-width:520px;width:100%;height:auto}
+.small{font-size:12px;opacity:.8}
