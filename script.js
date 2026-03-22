@@ -85,7 +85,16 @@ function applyURL() {
 }
 function fillThreads() {
   els.th.innerHTML = '<option value="">Välj...</option>';
-  A.threads.forEach(t => {
+
+  const threads = Object.values(A.bySlug)
+    .slice()
+    .sort((a, b) => {
+      const ta = +(new Date(a.range?.max || a.range?.min || 0)) || 0;
+      const tb = +(new Date(b.range?.max || b.range?.min || 0)) || 0;
+      return tb - ta || a.name.localeCompare(b.name, "sv");
+    });
+
+  threads.forEach(t => {
     const o = document.createElement("option");
     o.value = t.slug;
     o.textContent = t.name;
