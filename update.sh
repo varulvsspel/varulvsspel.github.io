@@ -19,45 +19,35 @@ while true; do
   log "status före sync:"
   git status --short --branch || true
   log "kör sync_archive.py --limit-threads 5"
-  tmp="$(mktemp)"
-  if ! python3 sync_archive.py --limit-threads 5 2>&1 | tee "$tmp"; then
-    rc=$?
-    log "sync_archive.py misslyckades"
-    rm -f "$tmp"
-    exit "$rc"
+  python3 sync_archive.py --limit-threads 5
+  log "kollar diff efter sync"
+  data_changed=0
+  archive_changed=0
+  if ! git diff --quiet -- data; then
+    data_changed=1
   fi
-  result="$(sed -n 's/^RESULT=//p' "$tmp" | tail -n1)"
-  rm -f "$tmp"
-  log "sync gav RESULT=${result:-<tomt>}"
-  case "${result:-}" in
-    none)
-      log "inget ändrat, ingen commit"
-      ;;
-    sync_only)
-      if ! git diff --quiet -- data archive.json archive_no_tag.json; then
-        log "sync_only: committar lokalt"
-        git add data archive.json archive_no_tag.json
-        git commit -m "synkar trådar lokalt"
-      else
-        log "sync_only men inget diffar"
-      fi
-      ;;
-    votes_changed)
-      if ! git diff --quiet -- data archive.json archive_no_tag.json; then
-        log "votes_changed: committar"
-        git add data archive.json archive_no_tag.json
+  if ! git diff --quiet -- archive.json archive_no_tag.json; then
+    archive_changed=1
+  fi
+  if [[ "$data_changed" -eq 0 && "$archive_changed" -eq 0 ]]; then
+    log "inget ändrat, ingen commit"
+  else
+    log "ändringar hittade: data=$data_changed archive=$archive_changed"
+    git add data archive.json archive_no_tag.json
+    if git diff --cached --quiet; then
+      log "inget låg staged trots diff-koll, skippar commit"
+    else
+      if [[ "$archive_changed" -eq 1 ]]; then
+        log "committar röständringar"
         git commit -m "uppdaterar röster"
+        log "pushar till origin/$BRANCH"
+        git push origin "$BRANCH"
       else
-        log "votes_changed men inget diffar"
+        log "committar bara lokala html/index-ändringar"
+        git commit -m "synkar trådar lokalt"
       fi
-      log "pushar till origin/$BRANCH"
-      git push origin "$BRANCH"
-      ;;
-    *)
-      log "okänd status från sync_archive.py"
-      exit 1
-      ;;
-  esac
+    fi
+  fi
   log "status efter varv:"
   git status --short --branch || true
   log "sover ${INTERVAL}s"
