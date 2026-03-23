@@ -11,3 +11,7 @@ th{background:#3c8dbc;color:#fff;cursor:pointer}
 #voteTable td:last-child,#voteTable th:last-child{padding-right:18px}
 #chart{max-width:520px;width:100%;height:auto}
 .small{font-size:12px;opacity:.8}
+details{margin:12px 0;background:#fff;border:1px solid #ccc;padding:10px}
+summary{font-weight:bold;cursor:pointer}
+.manualColors{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin:8px 0}
+.colorRow{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0}

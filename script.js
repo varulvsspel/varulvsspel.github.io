@@ -13,6 +13,8 @@ const els = {
   src: $("#sourceLine"),
   mode: $$('input[name="archiveMode"]'),
   view: $$('input[name="voteView"]'),
+  colorMode: $("#colorMode"),
+  manual: $("#manualColors"),
   animBtn: $("#animateBtn"),
   delay: $("#liveDelayInput"),
   slider: $("#timeSlider"),
@@ -33,23 +35,38 @@ const st = {
   votes: [],
   players: [],
   colors: {},
+  manualColors: {},
+  colorMode: "auto",
   archiveFile: "archive.json",
   fp: "",
   sort: "",
   animTimer: null,
-  sliderIndex: null, // null => hoppa till max vid rebuild
+  sliderIndex: null,
   timeline: [],
   lim: null
 };
 const curView = () => els.view.find(r => r.checked)?.value || "latest";
 const fmt = t => t ? new Date(t).toLocaleString("sv-SE", { dateStyle: "short", timeStyle: "short" }) : "–";
 const enc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const hsl = (h, s, l) => {
+  s /= 100; l /= 100;
+  const a = s * Math.min(l, 1 - l), f = n => {
+    const k = (n + h / 30) % 12;
+    const c = l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+    return Math.round(255 * c).toString(16).padStart(2, "0");
+  };
+  return `#${f(0)}${f(8)}${f(4)}`;
+};
 const mkColors = names => {
   const u = [...new Set(names)].sort((a, b) => a.localeCompare(b, "sv"));
   const m = {};
-  u.forEach((n, i) => m[n] = `hsl(${Math.round(i * 360 / u.length)},70%,60%)`);
+  u.forEach((n, i) => m[n] = hsl(Math.round(i * 360 / u.length), 70, 60));
   return m;
 };
+const colorOf = n =>
+  st.colorMode === "bw" ? "#000000" :
+  st.colorMode === "manual" ? (st.manualColors[n] || st.colors[n] || "#000000") :
+  (st.colors[n] || "#000000");
 const getLatest = vs => {
   const m = {};
   vs.slice().sort((a, b) => +new Date(a.ts) - +new Date(b.ts)).forEach(v => m[v.from] = v);
@@ -75,9 +92,12 @@ function readURL() {
 function applyURL() {
   const p = new URLSearchParams();
   if (st.slug) p.set("thread", st.slug);
-  p.set("view", curView());
-  p.set("delay", String(parseInt(els.delay.value || "200", 10) || 200));
-  if (st.sliderIndex != null) p.set("slider", String(st.sliderIndex));
+  if (curView() !== "latest") p.set("view", curView());
+  const delay = parseInt(els.delay.value || "200", 10) || 200;
+  if (delay !== 200) p.set("delay", String(delay));
+  if (st.timeline.length && st.sliderIndex != null && st.sliderIndex < st.timeline.length - 1) {
+    p.set("slider", String(st.sliderIndex));
+  }
   if (st.fp) p.set("fp", st.fp);
   if (st.sort) p.set("sort", st.sort);
   const qs = p.toString();
@@ -85,7 +105,6 @@ function applyURL() {
 }
 function fillThreads() {
   els.th.innerHTML = '<option value="">Välj...</option>';
-
   const threads = Object.values(A.bySlug)
     .slice()
     .sort((a, b) => {
@@ -93,12 +112,41 @@ function fillThreads() {
       const tb = +(new Date(b.range?.max || b.range?.min || 0)) || 0;
       return tb - ta || a.name.localeCompare(b.name, "sv");
     });
-
   threads.forEach(t => {
     const o = document.createElement("option");
     o.value = t.slug;
     o.textContent = t.name;
     els.th.appendChild(o);
+  });
+}
+function fillPlayerFilter() {
+  const cur = st.fp;
+  els.fp.innerHTML = '<option value="">Alla</option>';
+  st.players.slice().sort((a, b) => a.localeCompare(b, "sv")).forEach(n => {
+    const o = document.createElement("option");
+    o.value = n;
+    o.textContent = n;
+    o.style.color = colorOf(n);
+    o.style.fontWeight = "bold";
+    els.fp.appendChild(o);
+  });
+  els.fp.value = cur || "";
+}
+function fillManualColors() {
+  els.manual.hidden = st.colorMode !== "manual";
+  els.manual.innerHTML = "";
+  if (st.colorMode !== "manual") return;
+  st.players.slice().sort((a, b) => a.localeCompare(b, "sv")).forEach(n => {
+    st.manualColors[n] ||= st.colors[n] || "#000000";
+    const l = document.createElement("label");
+    l.className = "colorRow";
+    l.innerHTML = `<span>${enc(n)}</span>`;
+    const i = document.createElement("input");
+    i.type = "color";
+    i.value = st.manualColors[n];
+    i.dataset.player = n;
+    l.appendChild(i);
+    els.manual.appendChild(l);
   });
 }
 // Slider ticks = ALLA rösttider (st.votes), oavsett view/filter
@@ -161,23 +209,17 @@ function loadThread(slug, skipURL) {
   st.votes = (j.votes || []).map(v => ({ ...v }));
   st.players = (j.players && j.players.length) ? j.players : [...new Set(st.votes.flatMap(v => [v.from, v.to]))];
   st.colors = mkColors(st.players);
+  st.manualColors = {};
   els.th.value = st.slug;
   if (st.slug) {
     const urlname = `https://www.rollspel.nu/threads/${st.slug}/`;
     const href = `https://www.rollspel.nu/threads/${encodeURI(st.slug)}/`;
-    els.src.innerHTML = `Källa: <a target="_blank" href="${href}">${urlname}</a><p style="font-size: 12pt;"><b>För SL, kopiera: https://varulvsspel.github.io/kalkylator/?thread=${st.slug}</b></p>`;
+    els.src.innerHTML = `Källa: <a target="_blank" href="${href}">${urlname}</a>`;
   } else {
     els.src.innerHTML = "";
   }
-  els.fp.innerHTML = '<option value="">Alla</option>';
-  st.players.slice().sort((a, b) => a.localeCompare(b, "sv")).forEach(n => {
-    const o = document.createElement("option");
-    o.value = n;
-    o.textContent = n;
-    o.style.color = st.colors[n] || "#000";
-    o.style.fontWeight = "bold";
-    els.fp.appendChild(o);
-  });
+  fillPlayerFilter();
+  fillManualColors();
   // Återställ filter och slider när man byter tråd (minskar förvirring)
   if (!skipURL) {
     st.fp = "";
@@ -206,7 +248,7 @@ function bars(entries) {
     const barH = Math.max(12, Math.floor((H - 2 * pad) / Math.max(1, lab.length)) - 2);
     const y = pad + i * (barH + 2);
     const w = Math.floor((W - left - pad - 10) * dat[i] / mx);
-    const c = st.colors[name] || "#999";
+    const c = colorOf(name);
     const val = "" + dat[i];
     const tw = ctx.measureText(val).width;
     ctx.fillStyle = c;
@@ -267,7 +309,7 @@ function render(vsOverride = null) {
   els.summary.textContent =
     `⚠️ Risk för utröstning: ${danger} (${dCnt} röster, sedan ${fmt(first[danger])}). Senast röst lagd ${fmt(last)}.`;
   els.tbody.innerHTML = "";
-  const hist = {}, run = {}, GC = n => st.colors[n] || "#000";
+  const hist = {}, run = {}, GC = n => colorOf(n);
   tableVotes.slice().sort((a, b) => +new Date(a.ts) - +new Date(b.ts)).forEach(v => {
     run[v.to] = (run[v.to] || 0) + 1;
     const stand = Object.entries(run).sort((x, y) => y[1] - x[1]);
@@ -349,6 +391,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     st.sliderIndex = null;
     rebuildSlider(false);
   }));
+  els.colorMode.addEventListener("change", () => {
+    st.colorMode = els.colorMode.value;
+    fillPlayerFilter();
+    fillManualColors();
+    render();
+  });
+  els.manual.addEventListener("input", e => {
+    if (!e.target.matches('input[type="color"]')) return;
+    st.manualColors[e.target.dataset.player] = e.target.value;
+    fillPlayerFilter();
+    render();
+  });
   els.animBtn.addEventListener("click", () => { if (!st.slug) return; play(); });
   els.delay.addEventListener("input", applyURL);
   els.slider.addEventListener("input", () => onSlider(false));
@@ -385,11 +439,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       st.slug = "";
       st.votes = [];
       st.players = [];
+      st.manualColors = {};
       st.fp = "";
       st.sliderIndex = null;
       els.th.value = "";
       els.src.innerHTML = "";
       els.fp.innerHTML = '<option value="">Alla</option>';
+      els.manual.innerHTML = "";
       els.tbody.innerHTML = "";
       els.summary.textContent = "";
       els.cv.getContext("2d").clearRect(0, 0, els.cv.width, els.cv.height);
