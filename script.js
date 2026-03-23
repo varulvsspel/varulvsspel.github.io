@@ -218,14 +218,13 @@ function loadThread(slug, skipURL) {
   } else {
     els.src.innerHTML = "";
   }
-  fillPlayerFilter();
-  fillManualColors();
   // Återställ filter och slider när man byter tråd (minskar förvirring)
   if (!skipURL) {
     st.fp = "";
-    els.fp.value = "";
     st.sliderIndex = null; // => max
   }
+  fillPlayerFilter();
+  fillManualColors();
   rebuildSlider(skipURL);
   if (skipURL) render();
   if (!skipURL) applyURL();
@@ -375,6 +374,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   st.fp = init.fp || "";
   st.sort = init.sort || "";
   st.sliderIndex = init.slider;
+  st.colorMode = els.colorMode.value;
   const rv = els.view.find(r => r.value === init.view);
   if (rv) rv.checked = true;
   els.th.addEventListener("change", () => {

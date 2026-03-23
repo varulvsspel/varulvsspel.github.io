@@ -13,5 +13,7 @@ th{background:#3c8dbc;color:#fff;cursor:pointer}
 .small{font-size:12px;opacity:.8}
 details{margin:12px 0;background:#fff;border:1px solid #ccc;padding:10px}
 summary{font-weight:bold;cursor:pointer}
-.manualColors{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin:8px 0}
-.colorRow{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0}
+.manualColors{display:flex;flex-wrap:wrap;gap:8px 16px;margin:8px 0}
+.colorRow{display:inline-flex;align-items:center;gap:8px;margin:0;white-space:nowrap}
+.colorRow span{display:inline-block}
+.colorRow input{margin:0;flex:0 0 auto}
